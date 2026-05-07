@@ -32,6 +32,8 @@
 | Phase 5 | Day 81 – 100 | FastAPI 중급 (SQLAlchemy·JWT·캐싱·테스트) |
 | Phase 6 | Day 101 – 120 | FastAPI 고급 & 실전 프로젝트 (Docker·배포·CI/CD) |
 | Phase 7 | Day 121 – 150 | 금융 데이터 분석 & 머신러닝 (yfinance·pandas·LSTM) |
+| Phase 8 | 확장 모듈 | 자동매매 시스템 실전 보강 (Risk-Parity·Black-Litterman·로보어드바이저) |
+| Phase 9 | 추가 트랙 | TradingView PineScript·커스텀 인디케이터·Python 검증 |
 
 > 📄 전체 일일 커리큘럼은 **[CURRICULUM.md](./CURRICULUM.md)** 를 참고하세요.
 
@@ -60,7 +62,9 @@ Python-FastAPI-Uvicorn/
     │   └── hashtest.py        # set 집합 연산 실습
     ├── phase5/   (Day 81–100) FastAPI 중급
     ├── phase6/   (Day 101–120) FastAPI 고급 & 실전 프로젝트
-    └── phase7/   (Day 121–150) 금융 데이터 분석 & 머신러닝
+    ├── phase7/   (Day 121–150) 금융 데이터 분석 & 머신러닝
+    ├── phase8/   (확장 모듈)    자산배분/로보어드바이저 보강
+    └── phase9/   (추가 트랙)    PineScript 인디케이터 실습
 ```
 
 ---

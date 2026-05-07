@@ -22,6 +22,18 @@
 | **Phase 7** | Day 91 – 120 | 30일 | 금융 데이터 분석 & ML | yfinance·pandas·기술적분석·백테스트·LSTM |
 | **Phase 8** | Day 121 – 150 | 30일 | **자동매매 시스템 실전** ✨ | Alpaca·키움증권·AI전략·리스크관리·EC2 운용 |
 
+### 🧩 요청 커리큘럼 매핑 (충족/부분/미충족)
+
+| 요청 영역 | 현재 상태 | 비고 |
+|----------|----------|------|
+| 퀀트를 위한 ML/DL (회귀·RF·LSTM 등) | **부분 충족** | 기존 Day 142~148 + 확장 Day 151~154 보강 |
+| 투자분석 기초 방법론 (매크로·산업·밸류에이션) | **부분 충족** | 기존 Day 128 보유, DCF/FCF/EVA 확장 모듈 추가 |
+| 퀀트를 위한 금융 필수 지식 (채권·파생·자산배분) | **부분 충족** | Phase 8 확장 Day 151~153에서 Risk-Parity/BL 보강 |
+| 데이터 활용 퀀트 모델링 (성과지표·계절성·자동매매) | **부분 충족** | 기존 Day 136·137 + 확장 Day 155 보강 |
+| 주가지수 데이터 활용 ML/DL 프로젝트 | **부분 충족** | 기존 Day 150 + 확장 Day 156(네이버 크롤링)·Day 154(군집화) |
+| 로보어드바이저 개발 프로젝트 | **충족** | 기존 Phase 8 실전 자동매매/리스크/배포 구성 |
+| 투자 인디케이터 개발 프로젝트 (PineScript) | **부분 충족** | 신규 Phase 9(Day 161~163) 트랙으로 보강 |
+
 ### 자동매매 기능 현황 (Phase 8 완료 후)
 
 | 기능 | 상태 | 구현 모듈 |
@@ -229,6 +241,17 @@
 | 119 | 리스크 관리 이론 – VaR, 포지션 사이징 이론 | `labs/phase7/day149_risk_management.md` |
 | 120 | 미니 프로젝트 – AI 투자 분석 시스템 설계 | `labs/phase7/day150_final_project.md` |
 
+### 🧪 Phase 7 보완 확장 모듈 (요청 커리큘럼 반영)
+
+| Day | 주제 | LAB 파일 |
+|-----|------|----------|
+| 151 | SVM 기반 주가 방향 분류 | `labs/phase7/day151_svm.md` |
+| 152 | CNN 기반 시계열 패턴 분류 | `labs/phase7/day152_cnn_timeseries.md` |
+| 153 | Transformer 기반 시계열 예측 | `labs/phase7/day153_transformer_timeseries.md` |
+| 154 | 종목 클러스터링 (KMeans/DBSCAN) | `labs/phase7/day154_clustering.md` |
+| 155 | 주식시장 계절성 분석 (연말랠리·월별·요일효과) | `labs/phase7/day155_seasonality.md` |
+| 156 | 네이버 주식 페이지 크롤링 데이터 수집 | `labs/phase7/day156_naver_crawling.md` |
+
 ---
 
 ## 📅 Phase 8 – 자동매매 시스템 실전 ✨ (Day 121 ~ 150)
@@ -309,6 +332,24 @@
 | 149 | 실전 모니터링 + 점진적 증액 계획 수립 | `labs/phase8/day149_live_monitoring.md` | 텔레그램 + CloudWatch |
 | 150 | 최종 프로젝트 발표 – AI 자동매매 시스템 배포 | `labs/phase8/day150_final_project.md` | 전체 통합 발표 |
 
+### 🧠 Phase 8 보완 확장 모듈 (자산배분/로보어드바이저)
+
+| Day | 주제 | LAB 파일 | 핵심 내용 |
+|-----|------|----------|-----------|
+| 151 | Risk-Parity 자산배분 모델 구현 | `labs/phase8/day151_risk_parity.md` | 리스크 기여도 균등화 |
+| 152 | Black-Litterman 포트폴리오 모델 | `labs/phase8/day152_black_litterman.md` | 시장균형 + 투자자 관점 결합 |
+| 153 | 로보어드바이저 포트폴리오 최적화 | `labs/phase8/day153_roboadvisor_optimization.md` | 스크리닝·최적화·리밸런싱 통합 |
+
+## 📅 Phase 9 – PineScript/TradingView 인디케이터 트랙 (추가)
+
+> **목표**: TradingView 기반 전략 설계 → Python 성과 검증 → 자동화 연계
+
+| Day | 주제 | LAB 파일 |
+|-----|------|----------|
+| 161 | TradingView PineScript 기초 | `labs/phase9/day161_pinescript_basic.md` |
+| 162 | 커스텀 인디케이터 설계 및 구현 | `labs/phase9/day162_custom_indicator.md` |
+| 163 | PineScript 전략의 Python 성과 검증 | `labs/phase9/day163_pinescript_python_validation.md` |
+
 ---
 
 ## 🏗️ 일일 LAB 운영 방식
@@ -348,7 +389,8 @@
 │   ├── phase5/   (Day 51–70)        FastAPI 중급
 │   ├── phase6/   (Day 71–90)        FastAPI 고급 & 실전
 │   ├── phase7/   (Day 91–120)       금융 데이터 분석 & ML
-│   └── phase8/   (Day 121–150) ✨   자동매매 시스템 실전 (6주)
+│   ├── phase8/   (Day 121–150) ✨   자동매매 시스템 실전 (6주)
+│   └── phase9/   (추가 트랙)         PineScript 인디케이터 & Python 검증
 └── CURRICULUM.md
 ```
 
@@ -377,6 +419,9 @@ pip install alpaca-py \
             python-telegram-bot \
             apscheduler \
             joblib
+
+# 확장 모듈(Phase 7/9): 크롤링·PineScript 검증 보강
+pip install beautifulsoup4 lxml requests selenium
 ```
 
 ---
