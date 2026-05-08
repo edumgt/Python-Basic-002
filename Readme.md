@@ -1,20 +1,3 @@
-# 🐍 Python → FastAPI → Uvicorn 학습 프로젝트
-
----
-
-| ◀ 이전 강의 | 📚 커리큘럼 (8 / 10) | 다음 강의 ▶ |
-|:---|:---:|---:|
-| [← Python 퀀트 시스템](https://github.com/edumgt/python-quant) | **Python 트레이딩 샘플** | [AI / ML 기초 실습 →](https://github.com/edumgt/python-ai-basic-lab) |
-
----
-
-> **Python 기초부터 FastAPI 백엔드, 금융 데이터 분석까지** — 총 150일(1,200시간) 커리큘럼 기반 학습 저장소입니다.
-
-[![Python](https://img.shields.io/badge/Python-3.10%2B-blue?logo=python)](https://www.python.org/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-latest-009688?logo=fastapi)](https://fastapi.tiangolo.com/)
-[![Uvicorn](https://img.shields.io/badge/Uvicorn-ASGI-4c4c4c)](https://www.uvicorn.org/)
-
----
 
 ## 📌 프로젝트 소개
 
