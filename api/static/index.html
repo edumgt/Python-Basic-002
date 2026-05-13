@@ -176,7 +176,7 @@
     const notesList = document.getElementById('notes-list');
     const resultTitle = document.getElementById('result-title');
     const resultSubtitle = document.getElementById('result-subtitle');
-    const mongoButtons = Array.from(document.querySelectorAll('[data-action^="mongo-"]'));
+    const mongoActionButtons = Array.from(document.querySelectorAll('[data-action^="mongo-"]'));
     let mongoReady = false;
     let activeCharts = [];
 
@@ -219,7 +219,7 @@
 
     const setMongoReady = (ready, message = '') => {
       mongoReady = ready;
-      mongoButtons.forEach(btn => { btn.disabled = !ready; });
+      mongoActionButtons.forEach(btn => { btn.disabled = !ready; });
       if (!ready && message) {
         setStatus('Mongo 연결 필요', false);
         resultTitle.textContent = 'MongoDB 상태';
@@ -388,7 +388,7 @@
         }
         setMongoReady(false, JSON.stringify(data, null, 2));
       } catch (err) {
-        setMongoReady(false, String(err.message || err));
+        setMongoReady(false, err?.message || err?.toString?.() || 'Unknown error');
       }
     }
 
