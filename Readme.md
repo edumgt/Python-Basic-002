@@ -62,6 +62,42 @@ uvicorn api.main:app --reload --port 8000
 
 ---
 
+## 웹앱 화면 스크린샷
+
+> Playwright로 캡처한 주요 화면 10개입니다.
+
+### 1. 메인 화면 초기 상태
+![메인 화면 초기](docs/screenshots/01_main_home.png)
+
+### 2. 전체 페이지 스크롤
+![전체 페이지](docs/screenshots/02_main_fullpage.png)
+
+### 3. 좌측 입력 패널 (공통 입력 + 액션 버튼)
+![입력 패널](docs/screenshots/03_input_panel.png)
+
+### 4. 우측 결과 패널 (초기 상태)
+![결과 패널 초기](docs/screenshots/04_result_panel_initial.png)
+
+### 5. 데이터 수집 버튼 클릭 → 로딩/결과
+![데이터 수집](docs/screenshots/05_crawl_loading.png)
+
+### 6. ML 방향 예측 결과
+![ML 예측](docs/screenshots/06_ml_result.png)
+
+### 7. DL 방향 예측 결과
+![DL 예측](docs/screenshots/07_dl_result.png)
+
+### 8. 종목 군집화 결과
+![군집화](docs/screenshots/08_cluster_result.png)
+
+### 9. MongoDB CRUD 섹션
+![MongoDB 섹션](docs/screenshots/09_mongodb_section.png)
+
+### 10. 모바일 뷰 (375px)
+![모바일](docs/screenshots/10_mobile_view.png)
+
+---
+
 ## 프로젝트 구조 (핵심)
 
 ```text
