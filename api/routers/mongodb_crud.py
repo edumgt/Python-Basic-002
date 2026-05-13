@@ -68,10 +68,10 @@ class AnalysisUpdateReq(BaseModel):
     memo: str | None = None
 
 
-_PBKDF2_ROUNDS = 390000
+_PBKDF2_ROUNDS = 600000
 _DUMMY_PASSWORD_HASH = (
-    "pbkdf2_sha256$390000$7c6f3bc5a0ec01d1cd0e9f8f6f2c40b6$"
-    "ef63798f8b67b0f07f6a2926a19012cf697f9153dc84ee95e1b6bc53f9e8e995"
+    "pbkdf2_sha256$600000$7c6f3bc5a0ec01d1cd0e9f8f6f2c40b6$"
+    "5ef95915c8a7a8520bd6d54d52d35f9a194a60e9e7d2c69cdcfba5044a778803"
 )
 
 

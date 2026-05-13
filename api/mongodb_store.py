@@ -37,7 +37,10 @@ def _serialize(value: Any):
 
 class MongoRepository:
     def __init__(self):
-        self._client = MongoClient(getenv("MONGODB_URI", "mongodb://localhost:27017"))
+        self._client = MongoClient(
+            getenv("MONGODB_URI", "mongodb://localhost:27017"),
+            serverSelectionTimeoutMS=5000,
+        )
         self._db = self._client[getenv("MONGODB_DB_NAME", "stock_mldl")]
 
     @property

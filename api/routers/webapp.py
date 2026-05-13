@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 
 from fastapi import APIRouter, HTTPException
+from pymongo.errors import PyMongoError
 from pydantic import BaseModel, Field
 
 from api.mongodb_store import repo
@@ -83,7 +84,7 @@ def _save_crawl(payload: dict):
     try:
         repo.ping()
         return repo.insert_one(repo.crawls, payload)
-    except Exception as e:
+    except PyMongoError as e:
         logger.warning("MongoDB crawl 저장 실패: %s", e)
         return None
 
@@ -92,7 +93,7 @@ def _save_analysis(payload: dict):
     try:
         repo.ping()
         return repo.insert_one(repo.analyses, payload)
-    except Exception as e:
+    except PyMongoError as e:
         logger.warning("MongoDB analysis 저장 실패: %s", e)
         return None
 
@@ -113,9 +114,9 @@ def crawl(req: CrawlReq):
 
     latest = df.tail(1).copy()
     latest["Date"] = latest["Date"].dt.strftime("%Y-%m-%d")
-    stock_info = dict(info)
-    if stock_info.get("error"):
-        stock_info["error"] = "종목 정보 조회 실패"
+    stock_info = {k: v for k, v in dict(info).items() if k != "error"}
+    if "error" in info:
+        stock_info["error"] = "종목 정보 조회 실패(내부 로그 확인)"
     response = {
         "ticker": req.ticker,
         "ohlcv_rows": len(df),
