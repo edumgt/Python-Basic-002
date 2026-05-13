@@ -101,10 +101,17 @@
               <input id="mongo-user" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2" value="demo_user" />
             </label>
             <label class="text-sm text-slate-300">비밀번호
-              <input id="mongo-pass" type="password" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2" value="demo1234" />
+              <input id="mongo-pass" type="password" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2" placeholder="비밀번호 입력" />
             </label>
             <label class="text-sm text-slate-300">권한(role)
               <input id="mongo-role" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2" value="user" />
+            </label>
+            <label class="text-sm text-slate-300">삭제 타입
+              <select id="mongo-delete-type" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2">
+                <option value="users">users</option>
+                <option value="crawls">crawls</option>
+                <option value="analyses">analyses</option>
+              </select>
             </label>
             <label class="text-sm text-slate-300">삭제 대상 ID
               <input id="mongo-delete-id" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2" placeholder="MongoDB document id" />
@@ -175,6 +182,7 @@
       username: document.getElementById('mongo-user').value.trim(),
       password: document.getElementById('mongo-pass').value,
       role: document.getElementById('mongo-role').value.trim() || 'user',
+      deleteType: document.getElementById('mongo-delete-type').value,
       deleteId: document.getElementById('mongo-delete-id').value.trim(),
     });
 
@@ -302,6 +310,15 @@
       }
     }
 
+    const summarizeMongoDocs = (data) => {
+      if (Array.isArray(data)) return data;
+      if (data && typeof data === 'object') {
+        if (data.user && typeof data.user === 'object') return [data.user];
+        if (data.id) return [data];
+      }
+      return [];
+    };
+
     async function runMongoAction(name, url, method = 'GET', payload = null) {
       setStatus(`${name} 실행 중...`, null);
       resultTitle.textContent = name;
@@ -316,7 +333,7 @@
         if (!res.ok) throw new Error(JSON.stringify(data, null, 2));
         setStatus(`${name} 완료`, true);
         resultEl.textContent = JSON.stringify(data, null, 2);
-        const docs = Array.isArray(data) ? data : (data.user ? [data.user] : []);
+        const docs = summarizeMongoDocs(data);
         if (docs.length) {
           renderSummary([
             { label: '문서 개수', value: String(docs.length) },
@@ -401,16 +418,9 @@
           resultEl.textContent = '삭제할 ID를 입력하세요.';
           return;
         }
-        const type = prompt('삭제 타입 입력 (users | crawls | analyses)', 'users') || '';
-        const normalized = type.trim();
-        if (!['users', 'crawls', 'analyses'].includes(normalized)) {
-          setStatus('삭제 실패', false);
-          resultEl.textContent = 'users / crawls / analyses 중 하나를 입력하세요.';
-          return;
-        }
         return runMongoAction(
           'Mongo 문서 삭제',
-          `/api/mongo/${normalized}/${m.deleteId}`,
+          `/api/mongo/${m.deleteType}/${m.deleteId}`,
           'DELETE',
         );
       },

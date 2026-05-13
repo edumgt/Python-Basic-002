@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import hashlib
+import hmac
+import secrets
 from typing import Any
 
 from bson.errors import InvalidId
@@ -64,8 +66,38 @@ class AnalysisUpdateReq(BaseModel):
     memo: str | None = None
 
 
+_PBKDF2_ROUNDS = 390000
+_DUMMY_PASSWORD_HASH = (
+    "pbkdf2_sha256$390000$7c6f3bc5a0ec01d1cd0e9f8f6f2c40b6$"
+    "ef63798f8b67b0f07f6a2926a19012cf697f9153dc84ee95e1b6bc53f9e8e995"
+)
+
+
 def _hash_password(password: str) -> str:
-    return hashlib.sha256(password.encode("utf-8")).hexdigest()
+    salt_hex = secrets.token_hex(16)
+    digest = hashlib.pbkdf2_hmac(
+        "sha256",
+        password.encode("utf-8"),
+        bytes.fromhex(salt_hex),
+        _PBKDF2_ROUNDS,
+    ).hex()
+    return f"pbkdf2_sha256${_PBKDF2_ROUNDS}${salt_hex}${digest}"
+
+
+def _verify_password(password: str, encoded_hash: str) -> bool:
+    try:
+        algorithm, rounds, salt_hex, expected = encoded_hash.split("$", 3)
+        if algorithm != "pbkdf2_sha256":
+            return False
+        digest = hashlib.pbkdf2_hmac(
+            "sha256",
+            password.encode("utf-8"),
+            bytes.fromhex(salt_hex),
+            int(rounds),
+        ).hex()
+        return hmac.compare_digest(digest, expected)
+    except Exception:
+        return False
 
 
 def _guard():
@@ -107,7 +139,9 @@ def create_user(req: UserCreateReq):
 def login(req: LoginReq):
     _guard()
     user = repo.users.find_one({"username": req.username, "active": {"$ne": False}})
-    if not user or user.get("password_hash") != _hash_password(req.password):
+    stored_hash = user.get("password_hash") if user else _DUMMY_PASSWORD_HASH
+    valid = _verify_password(req.password, stored_hash)
+    if not user or not valid:
         raise HTTPException(status_code=401, detail="로그인 실패")
     user_doc = repo.serialize_doc(user)
     user_doc.pop("password_hash", None)
