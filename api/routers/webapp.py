@@ -114,7 +114,14 @@ def crawl(req: CrawlReq):
 
     latest = df.tail(1).copy()
     latest["Date"] = latest["Date"].dt.strftime("%Y-%m-%d")
-    stock_info = {k: v for k, v in dict(info).items() if k != "error"}
+    stock_info = {
+        "ticker": req.ticker,
+        "name": info.get("name", ""),
+        "price": info.get("price", ""),
+        "change": info.get("change", ""),
+        "rate": info.get("rate", ""),
+        "fetched_at": info.get("fetched_at", ""),
+    }
     if "error" in info:
         stock_info["error"] = "종목 정보 조회 실패(내부 로그 확인)"
     response = {
