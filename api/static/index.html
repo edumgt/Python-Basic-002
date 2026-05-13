@@ -74,7 +74,6 @@
     #summary-grid { display: grid; gap: 0.8rem; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
     #charts-grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
     #charts-grid > div, #summary-grid > div, #notes-box { padding: 1rem; }
-    #result { white-space: pre-wrap; word-break: break-word; }
     canvas { width: 100% !important; min-height: 200px; }
     @media (min-width: 1024px) {
       main > section { grid-template-columns: 360px minmax(0, 1fr); }
@@ -249,17 +248,12 @@
 
         <div id="charts-grid" class="grid gap-4 xl:grid-cols-2"></div>
 
-        <div class="rounded-xl border border-slate-800 bg-slate-900/70 p-4 shadow-xl shadow-slate-950/40">
-          <h3 class="text-sm font-semibold text-slate-100">원본 응답</h3>
-          <pre id="result" class="mt-3 min-h-[240px] overflow-auto rounded-lg bg-black/40 p-4 text-xs leading-5 text-slate-200">버튼을 눌러 실행하세요.</pre>
-        </div>
       </section>
     </section>
   </main>
 
   <script>
     const statusEl = document.getElementById('status');
-    const resultEl = document.getElementById('result');
     const summaryGrid = document.getElementById('summary-grid');
     const chartsGrid = document.getElementById('charts-grid');
     const notesBox = document.getElementById('notes-box');
@@ -308,6 +302,10 @@
       activeCharts = [];
     };
 
+    const renderInfo = (messages = []) => {
+      renderNotes(messages.filter(Boolean));
+    };
+
     const updateMongoStatus = (ready, message = '') => {
       mongoReady = ready;
       mongoActionButtons.forEach(btn => { btn.disabled = !ready; });
@@ -315,7 +313,7 @@
         setStatus('Mongo 연결 필요', false);
         resultTitle.textContent = 'MongoDB 상태';
         resultSubtitle.textContent = MONGO_HEALTH_ENDPOINT;
-        resultEl.textContent = message;
+        renderInfo([message]);
       }
     };
 
@@ -397,8 +395,8 @@
       setStatus(`${name} 실행 중...`, null);
       resultTitle.textContent = name;
       resultSubtitle.textContent = url;
-      resultEl.textContent = `${name} 요청 중...`;
       clearVisuals();
+      renderInfo([`${name} 요청 중...`]);
 
       try {
         const res = await fetch(url, {
@@ -409,7 +407,6 @@
         const data = await res.json();
         if (!res.ok) throw new Error(JSON.stringify(data, null, 2));
         setStatus(`${name} 완료`, true);
-        resultEl.textContent = JSON.stringify(data, null, 2);
         renderSummary(data.summary || []);
         renderNotes(data.notes || []);
         renderCharts(data.charts || []);
@@ -419,9 +416,12 @@
             { label: '상태', value: '완료' },
           ]);
         }
+        if (!data.notes?.length && data.mongo_id) {
+          renderInfo([`MongoDB 저장 완료: ${data.mongo_id}`]);
+        }
       } catch (err) {
         setStatus(`${name} 실패`, false);
-        resultEl.textContent = String(err.message || err);
+        renderInfo([String(err.message || err)]);
       }
     }
 
@@ -437,14 +437,14 @@
     async function runMongoAction(name, url, method = 'GET', payload = null) {
       if (!mongoReady) {
         setStatus(`${name} 실패`, false);
-        resultEl.textContent = `MongoDB 연결 후 다시 시도하세요. (${MONGO_HEALTH_ENDPOINT})`;
+        renderInfo([`MongoDB 연결 후 다시 시도하세요. (${MONGO_HEALTH_ENDPOINT})`]);
         return;
       }
       setStatus(`${name} 실행 중...`, null);
       resultTitle.textContent = name;
       resultSubtitle.textContent = `${method} ${url}`;
-      resultEl.textContent = `${name} 요청 중...`;
       clearVisuals();
+      renderInfo([`${name} 요청 중...`]);
       try {
         const options = { method, headers: { 'Content-Type': 'application/json' } };
         if (payload) options.body = JSON.stringify(payload);
@@ -452,7 +452,6 @@
         const data = await res.json();
         if (!res.ok) throw new Error(JSON.stringify(data, null, 2));
         setStatus(`${name} 완료`, true);
-        resultEl.textContent = JSON.stringify(data, null, 2);
         const docs = summarizeMongoDocs(data);
         if (docs.length) {
           renderSummary([
@@ -462,10 +461,11 @@
           renderNotes(docs.slice(0, 5).map((d, idx) => `${idx + 1}. ${d.username || d.analysis_type || d.ticker || d.id || '-'}`));
         } else {
           renderSummary([{ label: 'MongoDB', value: '요청 성공' }]);
+          renderInfo([name]);
         }
       } catch (err) {
         setStatus(`${name} 실패`, false);
-        resultEl.textContent = String(err.message || err);
+        renderInfo([String(err.message || err)]);
       }
     }
 
@@ -565,7 +565,7 @@
         const m = getMongoCommon();
         if (!m.deleteId) {
           setStatus('삭제 실패', false);
-          resultEl.textContent = '삭제할 ID를 입력하세요.';
+          renderInfo(['삭제할 ID를 입력하세요.']);
           return;
         }
         return runMongoAction(
