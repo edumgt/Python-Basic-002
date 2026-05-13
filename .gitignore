@@ -42,3 +42,7 @@ htmlcov/
 # mypy
 .mypy_cache/
 
+# Kubernetes Secrets (실제 시크릿 파일은 버전 관리 제외)
+k8s/mongodb/secret.yaml
+k8s/**/secret.yaml
+
