@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import logging
 from importlib import import_module
+from os import getenv
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -23,9 +24,14 @@ app = FastAPI(
     version="1.0.0",
 )
 
+# CORS_ORIGINS 환경 변수로 허용 오리진을 제어합니다.
+# 기본값 "*"는 개발 환경용이며, 프로덕션에서는 실제 도메인으로 제한하세요.
+# 예: CORS_ORIGINS="https://myapp.example.com,https://api.example.com"
+_cors_origins = [o.strip() for o in getenv("CORS_ORIGINS", "*").split(",") if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_cors_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -35,6 +41,8 @@ _ROUTERS = [
     "api.routers.dl_strategy",
 ]
 
+# 선택적 라우터 로딩: 특정 의존성이 없어도 서비스가 부분 기능으로 시작할 수 있도록
+# api.main:app 과 동일한 graceful degradation 패턴을 따릅니다.
 for _path in _ROUTERS:
     try:
         _mod = import_module(_path)
