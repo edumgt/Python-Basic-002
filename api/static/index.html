@@ -9,7 +9,7 @@
   <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" />
   <style>
     body { font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
-    /* Tailwind CDN 로딩 실패 시에도 최소 가독성 유지 */
+    /* Maintain minimum readability even when Tailwind CDN fails to load */
     main { max-width: 1200px; margin: 0 auto; }
     input, select, button { font: inherit; }
     .action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -217,7 +217,7 @@
       activeCharts = [];
     };
 
-    const setMongoReady = (ready, message = '') => {
+    const updateMongoStatus = (ready, message = '') => {
       mongoReady = ready;
       mongoActionButtons.forEach(btn => { btn.disabled = !ready; });
       if (!ready && message) {
@@ -383,12 +383,15 @@
         const res = await fetch('/api/mongo/health');
         const data = await res.json();
         if (res.ok && data?.status === 'ok') {
-          setMongoReady(true);
+          updateMongoStatus(true);
           return;
         }
-        setMongoReady(false, JSON.stringify(data, null, 2));
+        updateMongoStatus(false, JSON.stringify(data, null, 2));
       } catch (err) {
-        setMongoReady(false, err?.message || err?.toString?.() || 'Unknown error');
+        updateMongoStatus(
+          false,
+          err?.message || err?.toString?.() || 'MongoDB health check error',
+        );
       }
     }
 
