@@ -1,31 +1,33 @@
 """
 Daum Finance (finance.daum.net) Stock Information Crawler
 
-다음 금융 주식 정보 크롤러.
-현재 finance.daum.net API는 Kakao 인증이 필요하므로,
-Naver Finance의 KOSDAQ/KOSPI 시가총액 페이지와
-개별 종목 상세 API(api.finance.naver.com)를 병행하여 수집합니다.
+다음 금융 JSON API에서 주식 정보를 수집합니다.
+API: https://finance.daum.net/api/quotes/stocks?market=KOSPI&perPage=50&page=1
+
+Naver Finance 크롤러(finance.naver.com/crawler.py)와 달리, Daum API는
+JSON을 직접 반환하므로 HTML 파싱 없이 현재가·등락·외국인비율을 수집할 수 있습니다.
 
 Usage:
-    python crawler.py [--market MARKET] [--max-pages MAX_PAGES] [--output-format FORMAT]
+    python crawler.py [--market MARKET] [--pages PAGES] [--per-page PER_PAGE]
+                      [--output-format FORMAT] [--output-dir DIR]
 
 Examples:
-    python crawler.py --market KOSDAQ --max-pages 2
-    python crawler.py --market KOSPI --output-format json
+    python crawler.py --market KOSPI --per-page 50 --pages 1
+    python crawler.py --market KOSDAQ --output-format json
+    python crawler.py --market KOSPI --per-page 100 --pages 2 --output-dir ./out
 """
 
 import argparse
 import json
 import logging
+import os
 import time
 import xml.etree.ElementTree as ET
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from typing import List, Optional
-from urllib.parse import parse_qs, urlencode, urljoin, urlparse
 
 import requests
-from lxml import html
 
 logging.basicConfig(
     level=logging.INFO,
@@ -33,9 +35,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger("finance.daum.crawler")
 
-NAVER_BASE = "https://finance.naver.com"
-NAVER_MARKET_URL = f"{NAVER_BASE}/sise/sise_market_sum.naver"
-NAVER_ITEM_API = "https://api.finance.naver.com/service/itemSummary.nhn"
+DAUM_API_BASE = "https://finance.daum.net/api/quotes/stocks"
 
 DEFAULT_HEADERS = {
     "User-Agent": (
@@ -43,9 +43,8 @@ DEFAULT_HEADERS = {
         "AppleWebKit/537.36 (KHTML, like Gecko) "
         "Chrome/124.0.0.0 Safari/537.36"
     ),
-    "Accept": "text/html,application/xhtml+xml,*/*;q=0.8",
-    "Accept-Language": "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7",
-    "Referer": "https://finance.naver.com/",
+    "Referer": "https://finance.daum.net/",
+    "Accept": "application/json, text/plain, */*",
 }
 
 REQUEST_DELAY = 0.5
@@ -53,27 +52,28 @@ REQUEST_DELAY = 0.5
 
 @dataclass
 class StockInfo:
-    """주식 데이터 모델 (다음 금융 호환)"""
+    """다음 금융 API 주식 데이터 모델"""
 
     symbol_code: str = ""
     name: str = ""
     market: str = ""
-    current_price: int = 0
+    trade_price: int = 0
+    change: str = ""
+    change_price: int = 0
     change_rate: float = 0.0
-    volume: int = 0
-    market_cap: int = 0
-    per: float = 0.0
-    pbr: float = 0.0
-    eps: int = 0
+    acc_trade_volume: int = 0
+    acc_trade_price: int = 0
     foreign_ratio: float = 0.0
     crawled_at: str = ""
 
 
 class DaumStockCrawler:
     """
-    다음 금융 호환 주식 크롤러.
-    Naver Finance 시가총액 페이지에서 종목 목록을 가져오고,
-    api.finance.naver.com에서 PER/PBR/외국인비율 등 상세 지표를 보강합니다.
+    다음 금융 JSON API 크롤러.
+
+    Daum Finance API는 별도 인증 없이 Referer 헤더만으로 JSON 응답을 반환합니다.
+    Naver Finance 크롤러(HTML 파싱)와 달리 정형화된 JSON을 직접 파싱하므로
+    파싱 오류 위험이 낮고 외국인비율(foreign_ratio) 등 추가 지표를 포함합니다.
     """
 
     def __init__(self, delay: float = REQUEST_DELAY):
@@ -82,109 +82,89 @@ class DaumStockCrawler:
         self.delay = delay
         self.stocks: List[StockInfo] = []
 
-    def crawl_market(self, market: str = "KOSDAQ", max_pages: int = 1) -> List[StockInfo]:
-        """시장(KOSPI/KOSDAQ)의 주식 정보를 수집합니다."""
-        market_map = {"KOSPI": "0", "KOSDAQ": "1"}
-        sosok = market_map.get(market.upper(), "1")
-
-        logger.info("크롤링 시작: market=%s, max_pages=%d", market.upper(), max_pages)
+    def crawl_market(
+        self, market: str = "KOSPI", pages: int = 1, per_page: int = 50
+    ) -> List[StockInfo]:
+        """시장(KOSPI/KOSDAQ)의 주식 정보를 페이지 단위로 수집합니다."""
+        logger.info(
+            "크롤링 시작: market=%s, pages=%d, per_page=%d",
+            market.upper(), pages, per_page,
+        )
         all_stocks: List[StockInfo] = []
 
-        for page in range(1, max_pages + 1):
-            params = {"sosok": sosok, "page": page}
-            url = f"{NAVER_MARKET_URL}?{urlencode(params)}"
-            logger.info("  페이지 %d/%d 요청: %s", page, max_pages, url)
-
-            try:
-                resp = self.session.get(url, timeout=15)
-                resp.raise_for_status()
-            except requests.RequestException as exc:
-                logger.warning("요청 실패 (page=%d): %s", page, exc)
-                break
-
-            items = self._extract_stocks_from_html(resp.text, market.upper())
+        for page in range(1, pages + 1):
+            items = self._fetch_page(market.upper(), page, per_page)
             if not items:
-                logger.info("  더 이상 종목이 없습니다. 크롤링 종료.")
+                logger.info("  데이터 없음 – 크롤링 종료 (page=%d)", page)
                 break
-
-            # 개별 종목 상세 지표 보강
-            items = self._enrich_with_detail(items)
 
             all_stocks.extend(items)
-            logger.info("  %d개 종목 수집 (누적 %d개)", len(items), len(all_stocks))
+            logger.info(
+                "  페이지 %d/%d: %d개 수집 (누적 %d개)",
+                page, pages, len(items), len(all_stocks),
+            )
 
-            if page < max_pages:
+            if page < pages:
                 time.sleep(self.delay)
 
         self.stocks.extend(all_stocks)
         logger.info("크롤링 완료: 총 %d개 종목 수집", len(all_stocks))
         return all_stocks
 
-    def _extract_stocks_from_html(self, html_text: str, market: str) -> List[StockInfo]:
-        """시가총액 HTML 테이블에서 주식 정보를 추출합니다."""
-        stocks: List[StockInfo] = []
-        now = datetime.now(timezone.utc).isoformat()
+    def _fetch_page(
+        self, market: str, page: int, per_page: int
+    ) -> List[StockInfo]:
+        """Daum Finance API에서 단일 페이지를 요청하고 파싱합니다."""
+        params = {"market": market, "perPage": per_page, "page": page}
+        url = f"{DAUM_API_BASE}?market={market}&perPage={per_page}&page={page}"
+        logger.info("  요청: %s", url)
 
         try:
-            doc = html.fromstring(html_text)
-        except Exception as exc:
-            logger.warning("HTML 파싱 실패: %s", exc)
-            return stocks
+            resp = self.session.get(DAUM_API_BASE, params=params, timeout=15)
+            resp.raise_for_status()
+            payload = resp.json()
+        except requests.RequestException as exc:
+            logger.warning("요청 실패 (page=%d): %s", page, exc)
+            return []
+        except ValueError as exc:
+            logger.warning("JSON 파싱 실패 (page=%d): %s", page, exc)
+            return []
 
-        rows = doc.xpath('//table[@class="type_2"]//tr')
-        for row in rows:
-            link = row.xpath('.//a[contains(@href, "/item/main.naver")][1]')
-            if not link:
+        raw_items = payload.get("data", [])
+        if not raw_items:
+            return []
+
+        now = datetime.now(timezone.utc).isoformat()
+        stocks: List[StockInfo] = []
+        for item in raw_items:
+            symbol_code = item.get("symbolCode", "")
+            if symbol_code.startswith("A"):
+                symbol_code = symbol_code[1:]
+
+            trade_price = item.get("tradePrice")
+            if trade_price is None:
                 continue
 
-            href = link[0].get("href", "")
-            code = _extract_code(href)
-            name = link[0].text_content().strip()
-
-            cells = [" ".join(td.xpath(".//text()")).strip() for td in row.xpath("./td")]
-            if len(cells) < 10:
-                continue
-
-            stock = StockInfo(
-                symbol_code=code,
-                name=name,
+            stocks.append(StockInfo(
+                symbol_code=symbol_code,
+                name=item.get("name", ""),
                 market=market,
-                current_price=_to_int(cells[2]),
-                change_rate=_to_float(cells[4].replace("+", "")),
-                market_cap=_to_int(cells[6]),
-                volume=_to_int(cells[9]),
+                trade_price=int(trade_price),
+                change=_normalize_change(item.get("change", "")),
+                change_price=int(item.get("changePrice") or 0),
+                change_rate=round(float(item.get("changeRate") or 0) * 100, 4),
+                acc_trade_volume=int(item.get("accTradeVolume") or 0),
+                acc_trade_price=int(item.get("accTradePrice") or 0),
+                foreign_ratio=round(float(item.get("foreignRatio") or 0) * 100, 4),
                 crawled_at=now,
-            )
-            stocks.append(stock)
+            ))
 
-        return stocks
-
-    def _enrich_with_detail(self, stocks: List[StockInfo]) -> List[StockInfo]:
-        """api.finance.naver.com에서 PER, PBR, EPS 등 지표를 보강합니다."""
-        for stock in stocks:
-            if not stock.symbol_code:
-                continue
-            try:
-                resp = self.session.get(
-                    NAVER_ITEM_API,
-                    params={"itemcode": stock.symbol_code},
-                    timeout=8,
-                )
-                if resp.status_code == 200:
-                    data = resp.json()
-                    stock.per = _to_float(str(data.get("per", 0)))
-                    stock.pbr = _to_float(str(data.get("pbr", 0)))
-                    stock.eps = _to_int(str(data.get("eps", 0)))
-                    stock.foreign_ratio = _to_float(str(data.get("quant", 0)))
-            except Exception as exc:
-                logger.debug("상세 지표 수집 실패 (%s): %s", stock.symbol_code, exc)
-            time.sleep(self.delay)
         return stocks
 
     def export_json(self, filepath: str) -> None:
         """수집된 종목 데이터를 JSON 파일로 저장합니다."""
         data = {
-            "source": "finance.daum.net (via naver finance api)",
+            "source": "finance.daum.net",
             "crawled_at": datetime.now(timezone.utc).isoformat(),
             "total_count": len(self.stocks),
             "stocks": [asdict(s) for s in self.stocks],
@@ -205,19 +185,14 @@ class DaumStockCrawler:
             el.set("code", stock.symbol_code)
             _add_xml_element(el, "Name", stock.name)
             _add_xml_element(el, "Market", stock.market)
-            _add_xml_element(el, "CurrentPrice", str(stock.current_price))
+            _add_xml_element(el, "TradePrice", str(stock.trade_price))
+            _add_xml_element(el, "Change", stock.change)
+            _add_xml_element(el, "ChangePrice", str(stock.change_price))
             _add_xml_element(el, "ChangeRate", str(stock.change_rate))
-            _add_xml_element(el, "Volume", str(stock.volume))
-            _add_xml_element(el, "MarketCap", str(stock.market_cap))
-            _add_xml_element(el, "PER", str(stock.per))
-            _add_xml_element(el, "PBR", str(stock.pbr))
-            _add_xml_element(el, "EPS", str(stock.eps))
+            _add_xml_element(el, "AccTradeVolume", str(stock.acc_trade_volume))
+            _add_xml_element(el, "AccTradePrice", str(stock.acc_trade_price))
+            _add_xml_element(el, "ForeignRatio", str(stock.foreign_ratio))
             _add_xml_element(el, "CrawledAt", stock.crawled_at)
-            if stock.symbol_code:
-                _add_xml_element(
-                    el, "StockUrl",
-                    urljoin(NAVER_BASE, f"/item/main.naver?code={stock.symbol_code}"),
-                )
 
         tree = ET.ElementTree(root)
         ET.indent(tree, space="  ")
@@ -225,10 +200,9 @@ class DaumStockCrawler:
         logger.info("XML 저장 완료: %s (%d개 종목)", filepath, len(self.stocks))
 
 
-def _extract_code(href: str) -> str:
-    parsed = urlparse(href)
-    query = parse_qs(parsed.query)
-    return query.get("code", [""])[0]
+def _normalize_change(change: str) -> str:
+    mapping = {"RISE": "상승", "FALL": "하락", "EVEN": "보합"}
+    return mapping.get(change, change)
 
 
 def _add_xml_element(parent: ET.Element, tag: str, text: str) -> ET.Element:
@@ -237,59 +211,28 @@ def _add_xml_element(parent: ET.Element, tag: str, text: str) -> ET.Element:
     return el
 
 
-def _to_int(text: str) -> int:
-    cleaned = text.replace(",", "").replace("원", "").replace("%", "").strip()
-    cleaned = cleaned.replace("+", "").replace("-", "")
-    try:
-        return int(float(cleaned))
-    except ValueError:
-        return 0
-
-
-def _to_float(text: str) -> float:
-    cleaned = text.replace(",", "").replace("%", "").replace("+", "").strip()
-    try:
-        return float(cleaned)
-    except ValueError:
-        return 0.0
-
-
-def crawl(context) -> None:
-    """zavod 프레임워크 호환 crawl 함수"""
-    market = context.dataset.config.get("market", "KOSDAQ")
-    max_pages = context.dataset.config.get("max_pages", 1)
-
-    context.log.info(f"다음 금융 크롤링 시작: market={market}")
-
-    crawler = DaumStockCrawler()
-    stocks = crawler.crawl_market(market=market, max_pages=max_pages)
-
-    for stock in stocks:
-        context.log.info(
-            f"종목: {stock.name}({stock.symbol_code}) | 현재가: {stock.current_price:,}원 | "
-            f"PER: {stock.per} | PBR: {stock.pbr}"
-        )
-
-    context.log.info(f"크롤링 완료: 총 {len(stocks)}개 종목 수집")
-
-
 def main():
     parser = argparse.ArgumentParser(
-        description="다음 금융 호환 주식 정보 크롤러",
+        description="다음 금융 주식 정보 크롤러 (finance.daum.net JSON API)",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 예시:
-  python crawler.py --market KOSDAQ --max-pages 2
-  python crawler.py --market KOSPI --output-format json
+  python crawler.py --market KOSPI --per-page 50 --pages 1
+  python crawler.py --market KOSDAQ --output-format json
+  python crawler.py --market KOSPI --per-page 100 --pages 2
         """,
     )
     parser.add_argument(
-        "--market", type=str, choices=["KOSPI", "KOSDAQ"], default="KOSDAQ",
-        help="수집할 시장 (기본값: KOSDAQ)",
+        "--market", type=str, choices=["KOSPI", "KOSDAQ"], default="KOSPI",
+        help="수집할 시장 (기본값: KOSPI)",
     )
     parser.add_argument(
-        "--max-pages", type=int, default=1,
-        help="최대 크롤링 페이지 수 (기본값: 1)",
+        "--per-page", type=int, default=50,
+        help="페이지당 종목 수 (기본값: 50, 최대 100)",
+    )
+    parser.add_argument(
+        "--pages", type=int, default=1,
+        help="수집할 페이지 수 (기본값: 1)",
     )
     parser.add_argument(
         "--output-format", type=str, choices=["json", "xml", "both"], default="both",
@@ -301,13 +244,17 @@ def main():
     )
 
     args = parser.parse_args()
+
     crawler = DaumStockCrawler()
-    stocks = crawler.crawl_market(market=args.market, max_pages=args.max_pages)
+    stocks = crawler.crawl_market(
+        market=args.market, pages=args.pages, per_page=args.per_page
+    )
 
     if not stocks:
         logger.warning("수집된 종목이 없습니다.")
         return
 
+    os.makedirs(args.output_dir, exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     market_name = args.market.lower()
 

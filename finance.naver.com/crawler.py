@@ -14,6 +14,7 @@ Examples:
 import argparse
 import json
 import logging
+import os
 import time
 import xml.etree.ElementTree as ET
 from dataclasses import asdict, dataclass
@@ -210,25 +211,6 @@ def _add_xml_element(parent: ET.Element, tag: str, text: str) -> ET.Element:
     return el
 
 
-def crawl(context) -> None:
-    """zavod 프레임워크 호환 crawl 함수"""
-    market = context.dataset.config.get("market", "KOSPI")
-    max_pages = context.dataset.config.get("max_pages", 1)
-
-    context.log.info(f"네이버 금융 크롤링 시작: market={market}")
-
-    crawler = NaverStockCrawler()
-    stocks = crawler.crawl_market(market=market, max_pages=max_pages)
-
-    for stock in stocks:
-        context.log.info(
-            f"종목: {stock.name}({stock.code}) | 현재가: {stock.current_price:,}원 | "
-            f"등락률: {stock.change_rate}%"
-        )
-
-    context.log.info(f"크롤링 완료: 총 {len(stocks)}개 종목 수집")
-
-
 def main():
     parser = argparse.ArgumentParser(
         description="네이버 금융 주식 정보 크롤러",
@@ -276,6 +258,7 @@ def main():
         logger.warning("수집된 종목이 없습니다.")
         return
 
+    os.makedirs(args.output_dir, exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     market_name = args.market.lower()
 
