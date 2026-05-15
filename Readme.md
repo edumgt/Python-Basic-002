@@ -2,6 +2,102 @@
 
 국내 주식 크롤링, 군집화, ML/DL 예측, MongoDB 기록, Airflow 배치를 하나의 워크스테이션으로 재구성한 프로젝트입니다.
 
+---
+
+## 📋 프로젝트 시작 전 체크리스트
+
+> 이 프로젝트를 원활하게 진행하기 위해 아래 항목을 사전에 확인하세요.
+
+---
+
+### 1. 🧠 개인별 습득해야 할 기술 스택
+
+#### 필수 (Must-have)
+
+| 분야 | 기술 / 도구 | 권장 학습 수준 |
+|---|---|---|
+| **언어** | Python 3.10+ | 함수·클래스·예외 처리, 가상환경(venv) 운용 가능 수준 |
+| **웹 프레임워크** | Django 5, Flask 3 | 라우팅·템플릿·REST API 기본 구현 가능 수준 |
+| **데이터 분석** | pandas, numpy | DataFrame 조작, 시계열 인덱싱, 결측치 처리 가능 수준 |
+| **머신러닝** | scikit-learn, XGBoost | RandomForest·GBM 모델 학습·평가, 파이프라인 구성 가능 수준 |
+| **웹 스크래핑** | requests, BeautifulSoup4 | HTML 파싱, 테이블 추출, User-Agent 설정 가능 수준 |
+| **데이터베이스** | MongoDB | 컬렉션·도큐먼트 CRUD, pymongo 인덱싱 기본 이해 |
+| **컨테이너** | Docker, Docker Compose | 이미지 빌드·컨테이너 실행·볼륨·네트워크 기본 이해 |
+| **버전 관리** | Git / GitHub | 브랜치 전략, PR·리뷰 기본 워크플로우 이해 |
+
+#### 권장 (Nice-to-have)
+
+| 분야 | 기술 / 도구 | 권장 학습 수준 |
+|---|---|---|
+| **딥러닝** | TensorFlow 2 / Keras | LSTM 시계열 모델 구성·학습 기본 이해 (선택적 DL 기능 사용 시) |
+| **배치 오케스트레이션** | Apache Airflow 2 | DAG 개념 이해, 태스크 의존성 설정 가능 수준 |
+| **쿠버네티스** | Kubernetes (k8s) | Deployment·Service·Ingress 기본 리소스 적용 가능 수준 (클라우드 배포 시) |
+| **주식·금융 도메인** | OHLCV, 기술적 분석 기초 | 일봉 데이터 구조, 이동평균·RSI 등 지표 기본 개념 이해 |
+| **API 설계** | REST API, Pydantic v2 | 요청/응답 스키마 검증, HTTP 상태 코드 이해 |
+
+---
+
+### 2. 💻 권장 PC 사양
+
+모든 서비스(Django · Flask · MongoDB · Airflow)를 **로컬에서 동시 실행**하는 기준입니다.
+
+| 항목 | 최소 사양 | 권장 사양 |
+|---|---|---|
+| **OS** | Windows 10/11 (WSL2), macOS 12+, Ubuntu 20.04+ | macOS 14+ / Ubuntu 22.04+ |
+| **CPU** | 4코어 (Intel i5 / AMD Ryzen 5 이상) | 8코어 이상 (Apple M-series 포함) |
+| **RAM** | 8 GB | **16 GB 이상** ← Airflow 단독 4 GB 점유 |
+| **스토리지** | SSD 20 GB 여유 공간 | SSD 50 GB 이상 (Docker 이미지·MongoDB 데이터 고려) |
+| **GPU** | 불필요 (CPU 전용 ML 가능) | NVIDIA CUDA 지원 GPU (TensorFlow LSTM 학습 가속 시) |
+| **인터넷** | Naver Finance / Yahoo Finance 접근 가능 환경 | 방화벽·프록시 없는 일반 가정용 인터넷 |
+| **Docker** | Docker Desktop 4.x 이상 | Docker Desktop 최신 버전 |
+
+> ⚠️ **Apple Silicon(M1/M2/M3/M4) 주의**: TensorFlow 사용 시 `tensorflow-macos` + `tensorflow-metal` 패키지로 대체 설치가 필요합니다.  
+> ⚠️ **Windows 사용자**: Docker Desktop 실행을 위해 WSL2(Windows Subsystem for Linux 2) 활성화가 필수입니다.
+
+---
+
+### 3. 🌐 가입해야 할 플랫폼
+
+| 플랫폼 | 목적 | 가입 필요 여부 | 비용 |
+|---|---|---|---|
+| **GitHub** | 소스 코드 클론·협업·PR | ✅ 필수 | 무료 |
+| **Docker Hub** | 공식 이미지(mongo:7.0, airflow:2.10) 풀 | ✅ 필수 (익명 풀 제한 해소 목적) | 무료 |
+| **Naver Finance** | 주가 크롤링 대상 사이트 (로그인 불필요) | ❌ 불필요 | 무료 |
+| **Yahoo Finance (yfinance)** | ML·DL 데이터 폴백 소스 (로그인 불필요) | ❌ 불필요 | 무료 |
+| **AWS / GCP / Azure** | Kubernetes 클러스터 배포 시 (선택) | 🔶 선택 | 유료 (하단 비용표 참고) |
+
+---
+
+### 4. 💰 예상 비용 (카드 청구 예상 금액)
+
+#### 로컬 개발 환경 (Docker Compose 기준)
+
+| 항목 | 비용 |
+|---|---|
+| Python, Docker Desktop, MongoDB Community | **무료** |
+| Naver Finance 크롤링, yfinance | **무료** |
+| GitHub (개인 공개/비공개 저장소) | **무료** |
+| **로컬 개발 합계** | **₩0 / 월** |
+
+> 단, 전기료·인터넷 요금 등 인프라 고정비는 별도입니다.
+
+#### 클라우드 배포 환경 (Kubernetes, 선택 사항)
+
+아래는 **최소 구성(노드 1~2개)** 기준 월 예상 청구 금액입니다.
+
+| 클라우드 | 구성 예시 | 예상 월 비용 (USD) | 원화 환산 (₩1,380/USD 기준) |
+|---|---|---|---|
+| **AWS EKS** | t3.medium × 2 노드 + EBS 30 GB | ~$100~150/월 | **약 ₩138,000~207,000/월** |
+| **GCP GKE** | e2-standard-2 × 2 노드 + Persistent Disk 30 GB | ~$90~130/월 | **약 ₩124,000~179,000/월** |
+| **Azure AKS** | Standard_B2s × 2 노드 + Managed Disk 30 GB | ~$80~120/월 | **약 ₩110,000~166,000/월** |
+| **국내 NCP(네이버 클라우드)** | Standard-2 × 2 노드 + Block Storage 30 GB | ~₩80,000~130,000/월 | **약 ₩80,000~130,000/월** |
+
+> ⚠️ 위 금액은 **참고용 추정치**이며, 실제 사용량·리전·할인·스팟 인스턴스 여부에 따라 달라집니다.  
+> ⚠️ **클라우드 무료 티어 활용**: AWS Free Tier(12개월), GCP $300 크레딧, Azure $200 크레딧을 통해 초기 테스트 시 비용을 크게 절감할 수 있습니다.  
+> ⚠️ TensorFlow GPU 학습이 필요한 경우 GPU 인스턴스(p3.xlarge 등) 비용이 **추가로 $1~3/시간** 발생합니다.
+
+---
+
 현재 메인 아키텍처는 아래처럼 나뉩니다.
 
 - `Django`: 메인 웹앱, 템플릿 렌더링, TradingView 톤의 대시보드 UI
