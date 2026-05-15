@@ -232,6 +232,10 @@ Flask API 엔드포인트:
 - `POST /api/webapp/dl-predict`
 - `POST /api/webapp/stock-forecast`
 
+---
+
+## 크롤러 엔진은 https://github.com/edumgt/python-crawling-lab 의 크롤러 방식을 도입합니다.
+
 ### 크롤링 데이터 실체 (실행 검증 기반)
 
 아래는 **2026-05-14 UTC 기준으로 실제 실행한 결과**입니다.
