@@ -235,6 +235,7 @@ Flask API 엔드포인트:
 ---
 
 ## 크롤러 엔진은 https://github.com/edumgt/python-crawling-lab 의 크롤러 방식을 도입합니다.
+## 백엔드 엔진은 https://github.com/edumgt/python-ml-class 의 repo 를 참고하여 py 를 추가합니다.
 
 ### 크롤링 데이터 실체 (실행 검증 기반)
 
