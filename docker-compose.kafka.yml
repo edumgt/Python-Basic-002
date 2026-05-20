@@ -8,8 +8,9 @@ version: '3.9'
 #   - Kafka            (메시지 브로커)
 #   - Kafka UI         (웹 관리 콘솔 — http://localhost:8989)
 #   - NiFi             (ETL 데이터 플로우 — http://localhost:8443/nifi)
-#   - Spark Master     (분산 처리 마스터 — http://localhost:8085)
-#   - Spark Worker     (분산 처리 워커)
+#
+# Spark는 별도 실행: kafka/spark/spark_kafka_stream.py 참고
+#   pip install pyspark  →  python -m kafka.spark.spark_kafka_stream
 #
 # 실행:
 #   docker compose -f docker-compose.kafka.yml up -d
@@ -37,7 +38,6 @@ volumes:
   kafka-data:
   nifi-data:
   nifi-logs:
-  spark-data:
 
 services:
 
@@ -52,8 +52,6 @@ services:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
       ZOOKEEPER_SYNC_LIMIT: 2
-    ports:
-      - "2181:2181"
     volumes:
       - zookeeper-data:/var/lib/zookeeper/data
       - zookeeper-logs:/var/lib/zookeeper/log
@@ -191,62 +189,6 @@ services:
       timeout: 15s
       retries: 5
       start_period: 90s   # NiFi 초기화에 시간이 필요함
-
-  # ─────────────────────────────────────────────────
-  # Apache Spark Master — 분산 처리 마스터 노드
-  # 접속: http://localhost:8085
-  # ─────────────────────────────────────────────────
-  spark-master:
-    image: bitnami/spark:3.5.1
-    container_name: spark-master
-    restart: unless-stopped
-    environment:
-      SPARK_MODE: master
-      SPARK_RPC_AUTHENTICATION_ENABLED: "no"
-      SPARK_RPC_ENCRYPTION_ENABLED: "no"
-      SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED: "no"
-      SPARK_SSL_ENABLED: "no"
-      SPARK_MASTER_WEBUI_PORT: 8085
-    ports:
-      - "8085:8085"     # Spark Web UI
-      - "7077:7077"     # Spark master 포트 (워커 연결)
-    volumes:
-      - .:/opt/bitnami/spark/work  # 프로젝트 코드 마운트
-      - spark-data:/opt/bitnami/spark/data
-    networks:
-      - kafka-net
-      - shared-net
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8085"]
-      interval: 15s
-      timeout: 5s
-      retries: 3
-      start_period: 20s
-
-  # ─────────────────────────────────────────────────
-  # Apache Spark Worker — 분산 처리 워커 노드
-  # ─────────────────────────────────────────────────
-  spark-worker:
-    image: bitnami/spark:3.5.1
-    container_name: spark-worker
-    restart: unless-stopped
-    depends_on:
-      spark-master:
-        condition: service_healthy
-    environment:
-      SPARK_MODE: worker
-      SPARK_MASTER_URL: spark://spark-master:7077
-      SPARK_WORKER_MEMORY: 1G
-      SPARK_WORKER_CORES: 2
-      SPARK_RPC_AUTHENTICATION_ENABLED: "no"
-      SPARK_RPC_ENCRYPTION_ENABLED: "no"
-      SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED: "no"
-      SPARK_SSL_ENABLED: "no"
-    volumes:
-      - .:/opt/bitnami/spark/work
-    networks:
-      - kafka-net
-      - shared-net
 
   # ─────────────────────────────────────────────────
   # Kafka Topic 초기화 — 시작 시 필수 토픽 자동 생성
